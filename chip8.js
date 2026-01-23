@@ -132,7 +132,49 @@ class Chip8 {
   }
 
   family8(opcode, X, Y) {
-    return undefined
+    const nibble = this.getFourthNibble(opcode)
+
+    if (nibble === 0x0){ //Sets VX to the value of VY.
+      this.V[X] = this.V[Y] 
+      
+    } else if (nibble === 0x1) {//Sets VX to VX or VY. (bitwise OR operation)
+      this.V[X] = this.V[X] | this.V[Y] 
+
+    } else if (nibble === 0x2) {//Sets VX to VX and VY. (bitwise AND operation)
+      this.V[X] = this.V[X] & this.V[Y] 
+
+    } else if (nibble === 0x3) {//Sets VX to VX xor VY.
+      this.V[X] = this.V[X] ^ this.V[Y] 
+
+    } else if (nibble === 0x4) {//Adds VY to VX. VF is set to 1 when there's an overflow, and to 0 when there is not
+      const add = this.V[X] + this.V[Y] 
+      this.V[0xF] = add > 255 ? 1 : 0
+      this.V[X] = add & 0xFF
+
+    } else if (nibble === 0x5) {//VY is subtracted from VX. VF is set to 0 when there's an underflow, and 1 when there is not.
+      const sub = this.V[X] - this.V[Y] 
+      this.V[0xF] = sub < 0 ? 0 : 1
+      this.V[X] = sub & 0xFF
+
+    } else if (nibble === 0x6) {//Shifts VX to the right by 1, then stores the least significant bit of VX prior to the shift into VF
+      const lastBite = this.V[X] & 0x1
+      this.V[0xF] = lastBite
+      this.V[X] = this.V[X] >> 1
+
+    } else if (nibble === 0x7) {//Sets VX to VY minus VX. VF is set to 0 when there's an underflow, and 1 when there is not.
+      const sub = this.V[Y] - this.V[X] 
+      this.V[0xF] = sub < 0 ? 0 : 1
+      this.V[X] = sub & 0xFF
+      
+    } else if (nibble === 0xE) {//Shifts VX to the left by 1, then sets VF to 1 if the most significant bit of VX prior to that shift was set, or to 0 if it was unset
+      const firstBite = this.V[X] & 0x1
+      this.V[0xF] = lastBite
+      this.V[X] = this.V[X] >> 1
+      
+    } 
+    else {
+      throw new Error('Opcode not found in family8')
+    }
   }
 
   getRandomInt(max) {
@@ -184,6 +226,23 @@ class Chip8 {
     }
   }
 
+  loadProgram(buffer) {
+    const program = new Uint8Array(buffer)
+
+    // Seguridad básica
+    if (program.length + 0x200 > this.memory.length) {
+      throw new Error('Program too large to fit in memory')
+    }
+
+    // Copiar el programa a memoria desde 0x200
+    for (let i = 0; i < program.length; i++) {
+      this.memory[0x200 + i] = program[i]
+    }
+
+    // Reset del estado de ejecución
+    this.pc = 0x200
+  }
+
   startTimers(){
     this.timersLoop = createLoop(60, () => {
       if (this.delayTimer > 0) {delayTimer--}
@@ -216,6 +275,18 @@ class Chip8 {
 
 const chip8 = new Chip8(displayElement);
 
-chip8.drawByteAt(0,1,245)
+const getX = (offset, position) => offset + position * 5;
 
-chip8.startEmulation()
+const program = [
+  0x61, 0x0D, // set y-coordinate = 0x0D = 13
+  0x60, getX(18, 0), 0xA0, 0x50, 0xD0, 0x15,  // set x-coordinate (0x60 0xXX), set sprite address to new number (0xA0 0xXX), draw sprite (0xD0 0x0N)
+  0x60, getX(18, 1), 0xA0, 0x55, 0xD0, 0x15,  // set x-coordinate (0x60 0xXX), set sprite address to new number (0xA0 0xXX), draw sprite (0xD0 0x0N)
+  0x60, getX(18, 2), 0xA0, 0x5A, 0xD0, 0x15,  // set x-coordinate (0x60 0xXX), set sprite address to new number (0xA0 0xXX), draw sprite (0xD0 0x0N)
+  0x60, getX(18, 3), 0xA0, 0x5F, 0xD0, 0x15,  // set x-coordinate (0x60 0xXX), set sprite address to new number (0xA0 0xXX), draw sprite (0xD0 0x0N)
+  0x60, getX(18, 4), 0xA0, 0x64, 0xD0, 0x15,  // set x-coordinate (0x60 0xXX), set sprite address to new number (0xA0 0xXX), draw sprite (0xD0 0x0N)
+  0x60, getX(18, 5), 0xA0, 0x69, 0xD0, 0x15,  // set x-coordinate (0x60 0xXX), set sprite address to new number (0xA0 0xXX), draw sprite (0xD0 0x0N)
+  0x12, 0x00]; // jump to address 0x200, starting point of the program, loaded at address 0x200 (so creating an infinite loop)  
+
+chip8.loadProgram(program)
+
+chip8.startEmulation(30)
