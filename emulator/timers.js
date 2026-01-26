@@ -18,4 +18,16 @@ export default class Timers {
 
     this.timersLoop.start()
   }
+
+  getDelayTimer() {
+    return this.delayTimer
+  }
+
+  setDelayTimer(value) {
+    this.delayTimer = value
+  }
+
+  setSoundTimer(value) {
+    this.soundTimer = value
+  }
 }

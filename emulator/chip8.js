@@ -1,9 +1,12 @@
 import { createLoop, getFirstNibble, getSecondNibble, getThirdNibble, getFourthNibble, loadFonsetInto } from './utils.js';
 import Display from './display.js'
 import Timers from './timers.js'
+import Keyboard from './keyboard.js'
 import createOpcodeTable from './opcodes/opcodeTable.js';
 import createFamily0 from './opcodes/family0.js';
 import createFamily8 from './opcodes/family8.js';
+import createFamilyE from './opcodes/familyE.js';
+import createFamilyF from './opcodes/familyF.js';
 
 export default class Chip8 {
   constructor(canvas) {
@@ -14,17 +17,19 @@ export default class Chip8 {
     this.opcode = 0;
     this.stack = [];
     this.sp = 0;
+    this.pcIsHalted = false;
 
     this.display = new Display(canvas)
     this.timers = new Timers()
+    this.keyboard = new Keyboard()
 
     this.emulationLoop
-
-    this.keys = []
 
     this.opcodeTable = createOpcodeTable(this)
     this.family0Table = createFamily0(this)
     this.family8Table = createFamily8(this)
+    this.familyETable = createFamilyE(this)
+    this.familyFTable = createFamilyF(this)
 
   }
 
@@ -61,7 +66,27 @@ export default class Chip8 {
     if (handler) {
       handler(decode)
     } else {
-      throw new Error(`reading unexisting upcode: ${this.pc} - family8`)
+      throw new Error(`reading unexisting upcode: ${decode.opcode} - family8`)
+    }
+  }
+
+  familyE(decode) {
+    const handler = this.familyETable[decode.opcode & 0x00FF]
+
+    if (handler) {
+      handler(decode.X)
+    } else {
+      throw new Error(`reading unexisting upcode: ${decode.opcode} - familyE`)
+    }
+  }
+
+  familyF(decode) {
+    const handler = this.familyFTable[decode.opcode & 0x00FF]
+
+    if (handler) {
+      handler(decode.X)
+    } else {
+      throw new Error(`reading unexisting upcode: ${decode.opcode} - familyF`)
     }
   }
 
@@ -114,8 +139,8 @@ export default class Chip8 {
     const opcode = (this.memory[this.pc] << 8) | this.memory[this.pc + 1];
 
     this.opcode = opcode;
-    this.pc += 2; //points to the next instruction 
     this.decodeAndExecuteOpcode(opcode);
+    this.pc += this.pcIsHalted ? 0 : 2; //points to the next instruction if not halted 
   }
 
   startEmulation(hz = 700) {
