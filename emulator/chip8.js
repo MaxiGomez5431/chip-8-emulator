@@ -167,7 +167,7 @@ export default class Chip8 {
     this.instructionChangePC = false;
   }
 
-  startEmulation(hz = 1000) {
+  startEmulation(hz = 60) {
     this.emulationLoop = createLoop(hz, () => this.executeOneCycle())
     this.emulationLoop.start()
     this.timers.startTimers(this)

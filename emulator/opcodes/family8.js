@@ -25,8 +25,9 @@ export default function createFamily8(chip) {
       chip.V[0xF] = sub < 0 ? 0 : 1
     },
     0x6: (d) => { //Shifts VX to the right by 1, then stores the least significant bit of VX prior to the shift into VF
+      chip.V[d.X] = chip.V[d.Y]
       const lastBite = chip.V[d.X] & 0x1
-      chip.V[d.X] = chip.V[d.Y] >> 1 & 0xFF // chip.V[d.Y] can be replaced by chip.V[d.X]
+      chip.V[d.X] = chip.V[d.X] >> 1 & 0xFF // chip.V[d.Y] can be replaced by chip.V[d.X]
       chip.V[0xF] = lastBite
     },
     0x7: (d) => { //Sets VX to VY minus VX. VF is set to 0 when there's an underflow, and 1 when there is not. REVISAR
@@ -35,9 +36,10 @@ export default function createFamily8(chip) {
       chip.V[0xF] = sub < 0 ? 0 : 1
     },
     0xE: (d) => { //Shifts VX to the left by 1, then sets VF to 1 if the most significant bit of VX prior to that shift was set, or to 0 if it was unset
+      chip.V[d.X] = chip.V[d.Y]
       const firstBite = (chip.V[d.X] & 0x80) >> 7
-      chip.V[d.X] = chip.V[d.Y] << 1 & 0xFF // chip.V[d.Y] can be replaced by chip.V[d.X]
+      chip.V[d.X] = chip.V[d.X] << 1 & 0xFF // chip.V[d.Y] can be replaced by chip.V[d.X]
       chip.V[0xF] = firstBite
     }
   }
-  }
+}
