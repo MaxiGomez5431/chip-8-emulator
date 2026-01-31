@@ -11,11 +11,38 @@ export default class Display {
     canvas.height = 32 * this.SCALE;
 
     this.canvasContext = canvas.getContext('2d');
+
+    this.needRedraw = false;
   }
 
   clearScreen(){
     this.debugDisplay.fill(0)
     this.canvasContext.clearRect(0, 0, 64 * this.SCALE, 32 * this.SCALE)
+  }
+
+  redrawFromDebugDisplay() {
+  // Primero limpiamos el canvas
+  this.canvasContext.clearRect(0, 0, 64 * this.SCALE, 32 * this.SCALE);
+  
+    // Recorremos todos los píxeles del debugDisplay
+    for (let y = 0; y < 32; y++) {
+      for (let x = 0; x < 64; x++) {
+        const index = x + (y * 64);
+        
+        // Si el píxel está activo (valor 1), lo dibujamos en blanco
+        if (this.debugDisplay[index] === 1) {
+          this.canvasContext.fillStyle = 'white';
+          this.canvasContext.fillRect(
+            x * this.SCALE, 
+            y * this.SCALE, 
+            this.SCALE, 
+            this.SCALE
+          );
+        }
+        // Nota: Los píxeles con valor 0 ya están representados por el fondo negro
+        // que acabamos de establecer al limpiar el canvas
+      }
+    }
   }
   
   drawPixelAt(x, y, actualVF){
@@ -27,15 +54,17 @@ export default class Display {
 
     const index = x + (y * 64)
     if(this.debugDisplay[index] === 0) {
-      this.canvasContext.fillStyle = 'white';
-      this.canvasContext.fillRect(x * this.SCALE, y * this.SCALE, this.SCALE, this.SCALE);
+      // this.canvasContext.fillStyle = 'white';
+      // this.canvasContext.fillRect(x * this.SCALE, y * this.SCALE, this.SCALE, this.SCALE);
       this.debugDisplay[index] = 1
     } else {
-      this.canvasContext.fillStyle = 'black';
-      this.canvasContext.fillRect(x * this.SCALE, y * this.SCALE, this.SCALE, this.SCALE);
+      // this.canvasContext.fillStyle = 'black';
+      // this.canvasContext.fillRect(x * this.SCALE, y * this.SCALE, this.SCALE, this.SCALE);
       VF = 1 //It resets in drawSpriteAt() 
       this.debugDisplay[index] = 0
     }
+
+    this.needRedraw = true
 
     return VF
   }

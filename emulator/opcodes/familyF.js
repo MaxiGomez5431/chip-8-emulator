@@ -3,12 +3,15 @@ export default function createFamilyF(chip) {
     0x07: (X) => { // Sets VX to the value of the delay timer
       chip.V[X] = chip.timers.getDelayTimer() 
     },
-    0x0A: (X) => { // A key press is awaited, and then stored in VX 
-      chip.isPcHalted = true
+    0x0A: (X) => {
+      if (chip.pcIsHalted !== null) return;
+
+      chip.pcIsHalted = true;
+
       chip.keyboard.onNextKeyPress = (key) => {
-        chip.V[X] = key
-        chip.isPcHalted = false
-      }
+        chip.V[X] = key;
+        chip.pcIsHalted = false;
+      };
     },
     0x15: (X) => { // Sets the delay timer to VX.
       chip.timers.setDelayTimer(chip.V[X])
@@ -35,11 +38,13 @@ export default function createFamilyF(chip) {
       for (let i = 0; i <= X; i++){
         chip.memory[chip.I + i] = chip.V[i]
       }
+      chip.I = chip.I + X + 1 // Original interpreter behavior
     },
     0x65: (X) => { 
       for (let i = 0; i <= X; i++){
         chip.V[i] = chip.memory[chip.I + i]
       }
+      chip.I = chip.I + X + 1 // Original interpreter behavior
     },
   }
 }

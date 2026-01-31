@@ -2,7 +2,7 @@ export default class Keyboard {
   constructor() {
     this.keys = new Array(16).fill(false);
 
-    this.onNextKeyPress = null
+    this.isWaitingForKeyPress = false;
 
     this.keyMap = {
       Digit1: 0x1,
@@ -28,22 +28,27 @@ export default class Keyboard {
 
     this.onKeyDown = (event) => {
       if (event.repeat) return
+
+      console.log(event.code)
       const key = this.keyMap[event.code]
-      if (key !== null) {
+      if (key !== undefined) {
         event.preventDefault()
-        this.keys[key] = true
-        if (this.onNextKeyPress) {
-          this.onNextKeyPress(key)
-        }
+          this.keys[key] = true
       }
     }
 
     this.onKeyUp = (event) => {
       if (event.repeat) return
       const key = this.keyMap[event.code]
-      if (key !== null) {
+      if (key !== undefined) {
         event.preventDefault()
         this.keys[key] = false
+        if (this.onNextKeyPress) {
+          console.log('Key pressed while waiting for key press:', key);
+          const callback = this.onNextKeyPress;
+          this.onNextKeyPress = null;
+          callback(key);
+        }
       }
     }
 

@@ -17,7 +17,9 @@ export default class Chip8 {
     this.opcode = 0;
     this.stack = [];
     this.sp = 0;
+
     this.pcIsHalted = false;
+    this.instructionChangePC = false;
 
     this.display = new Display(canvas)
     this.timers = new Timers()
@@ -45,6 +47,7 @@ export default class Chip8 {
     }
 
     const handler = this.opcodeTable[decoded.firstNibble]
+    // console.log(`Executing opcode: 0x${opcode.toString(16).toUpperCase().padStart(4, '0')}`);
 
     if (!handler) throw new Error('Opcode not implemented');
     handler(decoded);
@@ -56,7 +59,7 @@ export default class Chip8 {
     if (handler) {
       handler()
     } else {
-      throw new Error("reading 0x00EE, not implemented - family0")
+      console.log(`reading unexisting upcode: 0x${decode.opcode.toString(16).toUpperCase().padStart(4, '0')} - family0`)
     }
   }
 
@@ -90,13 +93,16 @@ export default class Chip8 {
     }
   }
 
-  subrutineAt(NNN) { //0x2
-    return undefined
+  subrutineAt(NNN) {
+    this.stack.push(this.pc)
+    this.sp++
+    this.pc = NNN - 2 //-2 because pc will be increased after opcode execution
   }
 
   skipNextInstructionIf(condition) {
     if (condition) {
-      this.pc += 2
+      this.instructionChangePC = true
+      this.pc += 4
     }
   }
 
@@ -131,22 +137,40 @@ export default class Chip8 {
     this.memory[index] = value
   }
 
+  reset() {
+    this.display.clearScreen()
+    this.timers.resetTimers()
+    this.memory = loadFonsetInto(new Uint8Array(4096));
+    this.V.fill(0);
+    this.I = 0;
+    this.pc = 0x200;
+    this.opcode = 0;
+    this.stack = [];
+    this.sp = 0;
+    this.pcIsHalted = false;
+  }
+
   executeOneCycle() {
     if (this.pc + 1 >= this.memory.length) {
       throw new Error(`PC out of memory range: ${this.pc}`);
     }
-
     const opcode = (this.memory[this.pc] << 8) | this.memory[this.pc + 1];
 
     this.opcode = opcode;
     this.decodeAndExecuteOpcode(opcode);
-    this.pc += this.pcIsHalted ? 0 : 2; //points to the next instruction if not halted 
+
+    //points to the next instruction if not halted or pc was changed
+    if(!this.pcIsHalted && !this.instructionChangePC){
+      this.pc += 2; 
+      this.pcIsHalted = null;
+    }
+    this.instructionChangePC = false;
   }
 
-  startEmulation(hz = 700) {
+  startEmulation(hz = 1000) {
     this.emulationLoop = createLoop(hz, () => this.executeOneCycle())
     this.emulationLoop.start()
-    this.timers.startTimers()
+    this.timers.startTimers(this)
   }
 
 }
